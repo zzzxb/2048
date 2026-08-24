@@ -1,0 +1,6 @@
+{
+  "name": "Common",
+  "resources": [
+    { "path": "images/libgdx.png", "type": "texture" }
+  ]
+}

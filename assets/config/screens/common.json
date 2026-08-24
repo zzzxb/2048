@@ -1,0 +1,9 @@
+{
+  "name": "LoadingScreen",
+  "resources": [
+    { "path": "images/space.png", "type": "texture" },
+    { "path": "atlas/earth.atlas", "type": "textureAtlas" },
+    { "path": "images/background.png", "type": "texture" },
+    { "path": "images/location.png", "type": "texture" }
+  ]
+}

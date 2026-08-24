@@ -9,23 +9,33 @@ import com.badlogic.gdx.graphics.g2d.TextureAtlas;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import xyz.zzzxb.toolkit.core.SceneScreen;
+import xyz.zzzxb.toolkit.core.Screen;
+import xyz.zzzxb.toolkit.loaders.ScreenResourceLoader;
 import xyz.zzzxb.toolkit.utils.ResourceManager;
+
+import java.lang.reflect.InvocationTargetException;
 
 public class LoadingScreen extends SceneScreen {
     private ShapeRenderer shapeRenderer;
     private Animation<TextureRegion> earthAnimation;
     private float earthDelta;
+    private final Class<? extends Screen> targetScreenClass;
+
+    public LoadingScreen(Class<? extends Screen> targetScreenClass) {
+        this.targetScreenClass = targetScreenClass;
+    }
+
 
     @Override
     protected void onCreate() {
         shapeRenderer = new ShapeRenderer();
-        ResourceManager.load("images/space.png", Texture.class);
-        ResourceManager.load("atlas/earth.atlas", TextureAtlas.class);
-        ResourceManager.load("images/background.png", Texture.class);
-        ResourceManager.load("images/location.png", Texture.class);
-        ResourceManager.load("images/libgdx.png", Texture.class);
-
         inputManager.addKeyListener(Input.Keys.Q, () -> Gdx.app.exit());
+    }
+
+    @Override
+    protected void onShow() {
+        earthDelta = 0;
+        ScreenResourceLoader.loadScreenResources(targetScreenClass.getSimpleName());
     }
 
     @Override
@@ -42,7 +52,12 @@ public class LoadingScreen extends SceneScreen {
         }
 
         if (ResourceManager.isLoaded()) {
-            goTo(new TwentyFortyEight());
+            try {
+                goTo(targetScreenClass.getDeclaredConstructor().newInstance());
+            } catch (NoSuchMethodException | InstantiationException |
+                     IllegalAccessException | InvocationTargetException e) {
+                log.error("无法创建目标屏幕: " + targetScreenClass.getSimpleName(), e);
+            }
         }
     }
 
@@ -66,7 +81,7 @@ public class LoadingScreen extends SceneScreen {
         shapeRenderer.rect(0, 0, getWorldWidth(), 8);
         shapeRenderer.setColor(Color.OLIVE);
         shapeRenderer.rect(2, 2,
-            getWorldWidth() - 4, 4);
+            (getWorldWidth() - 4) * ResourceManager.getProgress(), 4);
         shapeRenderer.end();
     }
 }
