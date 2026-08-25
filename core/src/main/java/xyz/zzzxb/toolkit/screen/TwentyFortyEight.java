@@ -3,7 +3,10 @@ package xyz.zzzxb.toolkit.screen;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
 import com.badlogic.gdx.graphics.Texture;
-import xyz.zzzxb.toolkit.core.CameraController;
+import com.badlogic.gdx.graphics.g2d.Animation;
+import com.badlogic.gdx.graphics.g2d.TextureAtlas;
+import com.badlogic.gdx.graphics.g2d.TextureRegion;
+import com.badlogic.gdx.math.Interpolation;
 import xyz.zzzxb.toolkit.core.SceneScreen;
 import xyz.zzzxb.toolkit.core.camera.CameraAction;
 import xyz.zzzxb.toolkit.utils.ResourceManager;
@@ -13,58 +16,46 @@ import xyz.zzzxb.toolkit.utils.ResourceManager;
  * 2026/8/23
  */
 public class TwentyFortyEight extends SceneScreen {
-    private float scale;
-    private CameraController cameraController;
+    private float animationDelta;
+    private Animation<TextureRegion> loutsAnimation;
+    private float scale = 1.4f;
 
     @Override
     protected void onCreate() {
-        cameraController = new CameraController(camera);
-
         inputManager.addKeyListener(Input.Keys.Q, () -> Gdx.app.exit());
-        inputManager.addKeyListener(Input.Keys.MINUS, () -> scale -= 0.1f);
-        inputManager.addKeyListener(Input.Keys.EQUALS, () -> scale += 0.1f);
-
-        inputManager.addKeyListener(Input.Keys.A, () -> {
-            cameraController.act(
-                CameraAction.sequence(
-                    CameraAction.moveTo(100, 200, 1.0f),
-                    CameraAction.delay(0.3f),
-                    CameraAction.shake(10, 0.5f),
-                    CameraAction.run(() -> {
-                        System.out.println("震动结束！");
-                    })
-                )
-            );
-        });
-
+        inputManager.addKeyListener(Input.Keys.R, this::onShow);
+        inputManager.addKeyListener(Input.Keys.MINUS, () -> scale = Math.clamp(scale -= 0.1f, 1, 2));
+        inputManager.addKeyListener(Input.Keys.EQUALS, () -> scale = Math.clamp(scale += 0.1f, 1, 2));
     }
 
     @Override
     protected void onShow() {
-        scale = 2;
+        cam.setZoom(0.1f);
+        cam.act(CameraAction.zoomTo(scale, 1f, Interpolation.sineOut));
     }
 
     @Override
     public void update(float delta) {
-        // ✅ 每帧更新相机控制器，驱动动作执行
-        cameraController.update(delta);
-
-        // ✅ 如果没有动作在执行，才手动控制相机位置
-        if (!cameraController.isActing()) {
-            cameraController.setPosition(getWorldWidth(), getWorldHeight());
-            cameraController.setZoom(scale);
+        animationDelta += delta;
+        if (ResourceManager.isLoaded("atlas/lotus.atlas")) {
+            TextureAtlas atlas = ResourceManager.getTextureAtlas("atlas/lotus.atlas");
+            if (loutsAnimation == null) {
+                loutsAnimation = new Animation<>(0.2f, atlas.findRegions("lotus"),
+                    Animation.PlayMode.LOOP);
+            }
         }
     }
 
     @Override
     public void draw(float delta) {
-        // ✅ 应用相机投影矩阵
-        cameraController.apply(getBatch());
-
-        getBatch().draw(ResourceManager.getTexture("images/background.png"), 0, 0);
-        Texture texture = ResourceManager.getTexture("images/location.png");
-        getBatch().draw(texture, getWorldWidth() - (float) texture.getWidth() / 2 * scale,
-            getWorldHeight() - (float) texture.getHeight() / 2 * scale,
-            getWorldWidth() * scale, getWorldHeight() * scale);
+        float alpha = Math.min(camera.zoom / scale, 1f);
+        getBatch().setColor(1f, 1f, 1f, alpha);
+        if (loutsAnimation != null) {
+            TextureRegion textureRegion = loutsAnimation.getKeyFrame(animationDelta, true);
+            getBatch().draw(textureRegion,
+                getCenteredX(textureRegion.getRegionWidth()),
+                getCenteredY(textureRegion.getRegionHeight()));
+        }
+        getBatch().setColor(1, 1, 1, 1);
     }
 }

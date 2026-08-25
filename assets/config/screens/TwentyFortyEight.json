@@ -1,6 +1,7 @@
 {
-  "name": "Common",
+  "name": "TwentyFortyEight",
   "resources": [
-    { "path": "images/libgdx.png", "type": "texture" }
+    { "path": "images/libgdx.png", "type": "texture" },
+    { "path": "atlas/lotus.atlas", "type": "textureAtlas" }
   ]
 }
