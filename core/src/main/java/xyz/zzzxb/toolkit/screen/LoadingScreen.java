@@ -109,7 +109,6 @@ public class LoadingScreen extends SceneScreen {
         if (ResourceManager.isLoaded() && !cam.isActing()) {
             cam.act(
                 CameraAction.sequence(
-                    CameraAction.delay(0.5f),
                     CameraAction.zoomTo(0.1f, 1f, Interpolation.sineOut),
                     CameraAction.run(this::createScreen)
                 )

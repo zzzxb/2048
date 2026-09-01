@@ -1,7 +1,7 @@
 {
   "name": "TwentyFortyEight",
   "resources": [
-    { "path": "images/libgdx.png", "type": "texture" },
-    { "path": "atlas/lotus.atlas", "type": "textureAtlas" }
+    { "path": "atlas/lotus.atlas", "type": "textureAtlas" },
+    { "path": "atlas/2048.atlas", "type": "textureAtlas" }
   ]
 }

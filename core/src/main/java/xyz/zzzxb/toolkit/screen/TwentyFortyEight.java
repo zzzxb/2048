@@ -7,6 +7,9 @@ import com.badlogic.gdx.math.Interpolation;
 import com.badlogic.gdx.math.MathUtils;
 import xyz.zzzxb.toolkit.core.SceneScreen;
 import xyz.zzzxb.toolkit.core.camera.CameraAction;
+import xyz.zzzxb.toolkit.entity.BoardData;
+import xyz.zzzxb.toolkit.manager.BoardManager;
+import xyz.zzzxb.toolkit.render.BoardRender;
 import xyz.zzzxb.toolkit.utils.ResourceManager;
 
 /**
@@ -18,17 +21,26 @@ public class TwentyFortyEight extends SceneScreen {
     private TextureAtlas lotusAtlas;
     private float loutsAnimationDelta;
 
+    private TextureAtlas tileAtlas;
+    private BoardData boardData;
+    private BoardManager boardManager;
+    private BoardRender boardRender;
+
     @Override
     protected void onCreate() {
-        if (ResourceManager.isLoaded("atlas/lotus.atlas")) {
-            lotusAtlas = ResourceManager.getTextureAtlas("atlas/lotus.atlas");
-        }
+        lotusAtlas = ResourceManager.getTextureAtlas("atlas/lotus.atlas");
+        tileAtlas = ResourceManager.getTextureAtlas("atlas/2048.atlas");
+        boardData = new BoardData(4, 4, 64);
+        boardData.setPosition(getCenteredX(boardData.width), getCenteredY(boardData.height));
+        boardManager = new BoardManager(boardData);
+        boardRender = new BoardRender(boardData, tileAtlas);
     }
 
     @Override
     protected void onShow() {
         cam.setZoom(0.1f);
         cam.act(CameraAction.zoomTo(1, 1f, Interpolation.sineOut));
+        boardManager.init();
     }
 
     @Override
@@ -38,11 +50,13 @@ public class TwentyFortyEight extends SceneScreen {
             loutsAnimation = new Animation<>(0.2f, lotusAtlas.findRegions("lotus"),
                 Animation.PlayMode.LOOP);
         }
+        boardManager.update(delta);
     }
 
     @Override
     public void draw(float delta) {
         drawBackgroundAnimation();
+        boardRender.render(getBatch());
     }
 
     @Override
