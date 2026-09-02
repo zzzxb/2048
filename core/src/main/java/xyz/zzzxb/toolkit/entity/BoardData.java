@@ -14,6 +14,8 @@ public class BoardData {
     public float x;
     public float y;
     public TileData[][] tiles;
+    // 0 stop, 1 up -1 down -2 left 2 right
+    public int swing;
 
     public BoardData(int rows, int cols, int cellSize) {
         this.rows = rows;
@@ -22,6 +24,7 @@ public class BoardData {
         this.width = cols * cellSize;
         this.height = rows * cellSize;
         this.tiles = new TileData[rows][cols];
+        this.swing = 0;
     }
 
     public void setPosition(float x, float y) {

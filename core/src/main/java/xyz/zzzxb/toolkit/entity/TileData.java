@@ -9,6 +9,7 @@ public class TileData {
     public int value;
     public float x;
     public float y;
+    public boolean allowMerge;
 
     public TileData(int value, float x, float y) {
         this.value = value;
