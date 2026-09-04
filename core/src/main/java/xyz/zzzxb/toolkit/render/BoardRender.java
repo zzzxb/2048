@@ -1,44 +1,53 @@
 package xyz.zzzxb.toolkit.render;
 
-import com.badlogic.gdx.graphics.g2d.Batch;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g2d.TextureAtlas;
 import xyz.zzzxb.toolkit.entity.BoardData;
 import xyz.zzzxb.toolkit.entity.TileData;
+import xyz.zzzxb.toolkit.manager.BoardManager;
 import xyz.zzzxb.toolkit.utils.Logger;
 
 /**
  *
  * @author zzzxb
- * 2026/9/1
+ * 2026/9/4
  */
 public class BoardRender {
-    private Logger log = Logger.of(BoardRender.class);
-    private BoardData boardData;
-    private TextureAtlas tileAtlas;
+    private final Logger log = Logger.of(this.getClass());
 
-    public BoardRender(BoardData boardData, TextureAtlas tileAtlas) {
-        this.boardData = boardData;
+    private final SpriteBatch batch;
+    private final TextureAtlas tileAtlas;
+    private final BoardManager boardManager;
+
+    public BoardRender(SpriteBatch batch, BoardManager boardManager, TextureAtlas tileAtlas) {
+        this.batch = batch;
+        this.boardManager = boardManager;
         this.tileAtlas = tileAtlas;
     }
 
-    public void render(SpriteBatch batch) {
-        tileRender(batch);
+    public void render() {
+        renderBoard();
+        renderTiles();
     }
 
-    private void tileRender(SpriteBatch batch) {
-        for (int row = 0; row < boardData.rows; row++) {
-            for (int col = 0; col < boardData.cols; col++) {
-                float x = boardData.x + (boardData.cols - 1 - col) * boardData.cellSize;
-                float y = boardData.y + (boardData.rows - 1 - row) * boardData.cellSize;
-                TileData tileData = boardData.tiles[row][col];
-                if (tileData == null) {
-                    batch.draw(tileAtlas.findRegion("0"), x, y, boardData.cellSize, boardData.cellSize);
-                } else {
-                    batch.draw(tileAtlas.findRegion(Integer.toString(tileData.value)),
-                        tileData.x, tileData.y, boardData.cellSize, boardData.cellSize);
-                }
+    private void renderBoard() {
+        BoardData boardData = boardManager.getBoardData();
+        int rows = boardData.getRows();
+        int cols = boardData.getCols();
+        for (int row = 0; row < rows; row++) {
+            for (int col = 0; col < cols; col++) {
+                batch.draw(tileAtlas.findRegion("0"),
+                    boardData.getWorldX(col), boardData.getWorldY(row));
             }
+        }
+    }
+
+    private void renderTiles() {
+        BoardData boardData = boardManager.getBoardData();
+        for (int i = 0; i < boardData.getDataList().size; i++) {
+            TileData tileData = boardData.getDataList().get(i);
+            batch.draw(tileAtlas.findRegion(Integer.toString(tileData.getValue())),
+                tileData.getX(), tileData.getY());
         }
     }
 }

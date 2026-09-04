@@ -7,7 +7,6 @@ import com.badlogic.gdx.graphics.g2d.TextureAtlas;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.math.Interpolation;
 import com.badlogic.gdx.math.MathUtils;
-import xyz.zzzxb.toolkit.core.InputManager;
 import xyz.zzzxb.toolkit.core.SceneScreen;
 import xyz.zzzxb.toolkit.core.camera.CameraAction;
 import xyz.zzzxb.toolkit.entity.BoardData;
@@ -23,7 +22,6 @@ public class TwentyFortyEight extends SceneScreen {
     private Animation<TextureRegion> loutsAnimation;
     private TextureAtlas lotusAtlas;
     private float loutsAnimationDelta;
-
     private BoardManager boardManager;
     private BoardRender boardRender;
 
@@ -31,23 +29,21 @@ public class TwentyFortyEight extends SceneScreen {
     protected void onCreate() {
         lotusAtlas = ResourceManager.getTextureAtlas("atlas/lotus.atlas");
         TextureAtlas tileAtlas = ResourceManager.getTextureAtlas("atlas/2048.atlas");
+
         BoardData boardData = new BoardData(4, 4, 64);
-        boardData.setPosition(getCenteredX(boardData.width), getCenteredY(boardData.height));
+        boardData.setPosition(getCenteredX(boardData.getWidth()), getCenteredY(boardData.getHeight()));
         boardManager = new BoardManager(boardData);
-        boardRender = new BoardRender(boardData, tileAtlas);
+        boardRender = new BoardRender(getBatch(), boardManager, tileAtlas);
+
         inputManager.addKeyListener(Input.Keys.R, this::onShow);
         inputManager.addKeyListener(Input.Keys.Q, () -> Gdx.app.exit());
-        inputManager.addKeyListener(Input.Keys.W, () -> boardManager.setSwing(1));
-        inputManager.addKeyListener(Input.Keys.S, () -> boardManager.setSwing(-1));
-        inputManager.addKeyListener(Input.Keys.A, () -> boardManager.setSwing(-2));
-        inputManager.addKeyListener(Input.Keys.D, () -> boardManager.setSwing(2));
     }
 
     @Override
     protected void onShow() {
         cam.act(CameraAction.sequence(
             CameraAction.zoomTo(0.01f, 0.5f, Interpolation.sineOut),
-            CameraAction.run(() -> boardManager.init()),
+            CameraAction.run(boardManager::init),
             CameraAction.zoomTo(1f, 0.8f, Interpolation.smoother)
         ));
     }
@@ -65,7 +61,7 @@ public class TwentyFortyEight extends SceneScreen {
     @Override
     public void draw(float delta) {
         drawBackgroundAnimation();
-        boardRender.render(getBatch());
+        boardRender.render();
     }
 
     @Override
