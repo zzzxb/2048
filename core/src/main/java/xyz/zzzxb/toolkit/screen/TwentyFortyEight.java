@@ -7,6 +7,8 @@ import com.badlogic.gdx.graphics.g2d.TextureAtlas;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.math.Interpolation;
 import com.badlogic.gdx.math.MathUtils;
+import xyz.zzzxb.toolkit.core.GameState;
+import xyz.zzzxb.toolkit.core.GameStateManager;
 import xyz.zzzxb.toolkit.core.SceneScreen;
 import xyz.zzzxb.toolkit.core.camera.CameraAction;
 import xyz.zzzxb.toolkit.entity.BoardData;
@@ -19,6 +21,10 @@ import xyz.zzzxb.toolkit.utils.ResourceManager;
  * 2026/8/23
  */
 public class TwentyFortyEight extends SceneScreen {
+    private static final int BOARD_ROWS = 4;
+    private static final int BOARD_COLS = 4;
+    private static final int CELL_SIZE = 64;
+
     private Animation<TextureRegion> loutsAnimation;
     private TextureAtlas lotusAtlas;
     private float loutsAnimationDelta;
@@ -30,21 +36,28 @@ public class TwentyFortyEight extends SceneScreen {
         lotusAtlas = ResourceManager.getTextureAtlas("atlas/lotus.atlas");
         TextureAtlas tileAtlas = ResourceManager.getTextureAtlas("atlas/2048.atlas");
 
-        BoardData boardData = new BoardData(4, 4, 64);
+        BoardData boardData = new BoardData(BOARD_ROWS, BOARD_COLS, CELL_SIZE);
         boardData.setPosition(getCenteredX(boardData.getWidth()), getCenteredY(boardData.getHeight()));
         boardManager = new BoardManager(boardData);
         boardRender = new BoardRender(getBatch(), boardManager, tileAtlas);
 
         inputManager.addKeyListener(Input.Keys.R, this::onShow);
         inputManager.addKeyListener(Input.Keys.Q, () -> Gdx.app.exit());
+        inputManager.addKeyListener(Input.Keys.W, () -> boardManager.setSwing(1));
+        inputManager.addKeyListener(Input.Keys.S, () -> boardManager.setSwing(-1));
+        inputManager.addKeyListener(Input.Keys.A, () -> boardManager.setSwing(-2));
+        inputManager.addKeyListener(Input.Keys.D, () -> boardManager.setSwing(2));
     }
 
     @Override
     protected void onShow() {
-        cam.act(CameraAction.sequence(
-            CameraAction.zoomTo(0.01f, 0.5f, Interpolation.sineOut),
+        GameStateManager.reset(GameState.PLAYING);
+        GameStateManager.push(GameState.CUTSCENE);
+        cam.setZoom(0.01f);
+        cam.act(CameraAction.parallel(
+            CameraAction.zoomTo(1f, 1f, Interpolation.smoother),
             CameraAction.run(boardManager::init),
-            CameraAction.zoomTo(1f, 0.8f, Interpolation.smoother)
+            CameraAction.run(GameStateManager::pop)
         ));
     }
 
@@ -66,7 +79,7 @@ public class TwentyFortyEight extends SceneScreen {
 
     @Override
     protected void onGameLoopStart(float delta) {
-        getBatch().setColor(1f, 1f, 1f, MathUtils.clamp(camera.zoom, 0.01f, 0.9f));
+        getBatch().setColor(1f, 1f, 1f, MathUtils.clamp(camera.zoom, 0.01f, 0.95f));
     }
 
     @Override
