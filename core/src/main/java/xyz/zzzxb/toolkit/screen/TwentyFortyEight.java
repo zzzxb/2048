@@ -7,6 +7,7 @@ import com.badlogic.gdx.graphics.g2d.TextureAtlas;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.math.Interpolation;
 import com.badlogic.gdx.math.MathUtils;
+import com.badlogic.gdx.utils.Array;
 import xyz.zzzxb.toolkit.core.GameState;
 import xyz.zzzxb.toolkit.core.GameStateManager;
 import xyz.zzzxb.toolkit.core.SceneScreen;
@@ -26,15 +27,18 @@ public class TwentyFortyEight extends SceneScreen {
     private static final int CELL_SIZE = 64;
 
     private Animation<TextureRegion> loutsAnimation;
-    private TextureAtlas lotusAtlas;
     private float loutsAnimationDelta;
     private BoardManager boardManager;
     private BoardRender boardRender;
 
     @Override
     protected void onCreate() {
-        lotusAtlas = ResourceManager.getTextureAtlas("atlas/lotus.atlas");
+        Gdx.graphics.setForegroundFPS(60);
+        TextureAtlas lotusAtlas = ResourceManager.getTextureAtlas("atlas/lotus.atlas");
         TextureAtlas tileAtlas = ResourceManager.getTextureAtlas("atlas/2048.atlas");
+
+        Array<TextureAtlas.AtlasRegion> lotusRegions = lotusAtlas.findRegions("lotus");
+        loutsAnimation = new Animation<>(0.2f, lotusRegions, Animation.PlayMode.LOOP);
 
         BoardData boardData = new BoardData(BOARD_ROWS, BOARD_COLS, CELL_SIZE);
         boardData.setPosition(getCenteredX(boardData.getWidth()), getCenteredY(boardData.getHeight()));
@@ -64,10 +68,6 @@ public class TwentyFortyEight extends SceneScreen {
     @Override
     public void update(float delta) {
         loutsAnimationDelta += delta;
-        if (lotusAtlas != null && loutsAnimation == null) {
-            loutsAnimation = new Animation<>(0.2f, lotusAtlas.findRegions("lotus"),
-                Animation.PlayMode.LOOP);
-        }
         boardManager.update(delta);
     }
 
@@ -79,7 +79,10 @@ public class TwentyFortyEight extends SceneScreen {
 
     @Override
     protected void onGameLoopStart(float delta) {
-        getBatch().setColor(1f, 1f, 1f, MathUtils.clamp(camera.zoom, 0.01f, 0.95f));
+        float alpha = MathUtils.clamp(camera.zoom, 0.01f, 0.95f);
+        if (getBatch().getColor().a != alpha) {
+            getBatch().setColor(1f, 1f, 1f, alpha);
+        }
     }
 
     @Override

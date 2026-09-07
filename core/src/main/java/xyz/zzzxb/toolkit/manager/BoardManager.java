@@ -10,19 +10,16 @@ import xyz.zzzxb.toolkit.entity.TileData;
 import xyz.zzzxb.toolkit.utils.Logger;
 import xyz.zzzxb.toolkit.utils.LongPacker;
 
-/**
- *
- * @author zzzxb
- * 2026/9/4
- */
 public class BoardManager {
     private final Logger log = Logger.of(this.getClass());
+    private static final float SPAWN_2_PROBABILITY = 0.9f;
+    private static final int[] POW2 = {1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048};
+
     private final BoardData boardData;
     private final LongArray freeGrids;
-    // 0 stop, 1 up -1 down -2 left 2 right
     public int swing;
     private float elapsedTime = 0f;
-    private float duration = 0.5f;
+    private float duration = 0.18f;
     public boolean isAnimation;
 
     public BoardManager(BoardData boardData) {
@@ -48,19 +45,40 @@ public class BoardManager {
         }
     }
 
+    // ==================== 动画 ====================
+
     private void moveAnimation(float delta) {
         elapsedTime += delta;
         float progress = Math.min(1f, elapsedTime / duration);
-        float eased = Interpolation.smoother.apply(progress);
+        float eased = Interpolation.smooth.apply(progress);
+
         for (int i = 0; i < boardData.getDataList().size; i++) {
             TileData tile = boardData.getDataList().get(i);
+
+            // 滑动动画
             float currentX = tile.getFromX() + (tile.getTargetX() - tile.getFromX()) * eased;
             float currentY = tile.getFromY() + (tile.getTargetY() - tile.getFromY()) * eased;
             tile.setPosition(currentX, currentY);
+
+            // 合并动画（与滑动并行）
+            if (tile.isMerging()) {
+                tile.updateMergeAnimation(delta);
+            }
         }
 
         if (progress >= 1f) {
-            finishMove();
+            boolean allMergeDone = true;
+            for (int i = 0; i < boardData.getDataList().size; i++) {
+                TileData tile = boardData.getDataList().get(i);
+                if (tile.isMerging()) {
+                    allMergeDone = false;
+                    break;
+                }
+            }
+
+            if (allMergeDone) {
+                finishMove();
+            }
         }
     }
 
@@ -89,14 +107,15 @@ public class BoardManager {
 
     private void moveTile() {
         if (swing == 0) return;
-        boardData.getDataList().clear();
+
         int swingX = Math.abs(swing) == 2 ? MathUtils.clamp(swing, -1, 1) : 0;
         int swingY = Math.abs(swing) == 1 ? swing : 0;
         int beginRow = swingY > 0 ? boardData.getRows() - 1 : 0;
         int beginCol = swingX > 0 ? boardData.getCols() - 1 : 0;
+        TileData[][] tiles = boardData.getTiles();
+
         for (int row = 0; row < boardData.getRows(); row++) {
             for (int col = 0; col < boardData.getCols(); col++) {
-                TileData[][] tiles = boardData.getTiles();
                 int nowRow = swingY == 0 ? beginRow + row : beginRow - swingY * row;
                 int nowCol = swingX == 0 ? beginCol + col : beginCol - swingX * col;
                 TileData nowTile = tiles[nowRow][nowCol];
@@ -106,22 +125,25 @@ public class BoardManager {
                 int frontCol = LongPacker.getLowInt(frontTilePacked);
                 int frontRow = LongPacker.getHighInt(frontTilePacked);
                 TileData frontTile = tiles[frontRow][frontCol];
+
                 tiles[nowRow][nowCol] = null;
+
                 if (nowTile == frontTile || frontTile == null) {
-                    // 最前边的方格为空，直接把当前 tile 移动过去, 允许后边方格合并
                     nowTile.enableMerge();
                     nowTile.setTargetPosition(boardData.getWorldX(frontCol), boardData.getWorldY(frontRow));
                     boardData.placeTile(nowTile, frontRow, frontCol, false);
                 } else if (frontTile.isAllowMerge() && nowTile.getValue() == frontTile.getValue()) {
-                    // 当前方格设置为升级、关闭合并，并挪到前边方格, 提前挪动目的是为了后续方格容易进行计算
                     nowTile.disableMerge();
                     nowTile.setOption(TileData.UPGRADE);
                     nowTile.setTargetPosition(boardData.getWorldX(frontCol), boardData.getWorldY(frontRow));
                     boardData.placeTile(nowTile, frontRow, frontCol, false);
-                    // 前边方格被占后，设置为移除代表有人把它合并
+
                     frontTile.setOption(TileData.REMOVE);
+                    frontTile.startRemoveAnimation();
+
+                    nowTile.startMergeAnimation();
                 } else {
-                    // 前边方格既不空也不能合并，就放置在前边方格身后并允许后边方格合并
+                    // 不能合并，放在前方方块身后
                     int backRow = MathUtils.clamp(frontRow - swingY, 0, boardData.getRows() - 1);
                     int backCol = MathUtils.clamp(frontCol - swingX, 0, boardData.getCols() - 1);
                     nowTile.enableMerge();
@@ -146,26 +168,20 @@ public class BoardManager {
         return frontTile(frontRow, frontCol, swingX, swingY);
     }
 
-    /**
-     * 批量生成方块（90% 概率生成 2，10% 概率生成 4）
-     */
     private void spawnTiles(int batch) {
         updateFreeGrids();
         if (freeGrids.size == 0) return;
 
         int actualBatch = Math.min(batch, freeGrids.size);
         for (int i = 0; i < actualBatch; i++) {
-            int maxExp = MathUtils.random() < 0.8f ? 1 : 2;
+            int maxExp = MathUtils.random() < SPAWN_2_PROBABILITY ? 1 : 2;
             spawnTile(maxExp);
         }
     }
 
-    /**
-     * 批量生成指定最大指数的方块
-     */
     private void spawnTile(int maxExp) {
         int exp = MathUtils.clamp(maxExp, 1, 11);
-        int value = (int) Math.pow(2, exp);
+        int value = POW2[exp];
 
         int index = MathUtils.random(freeGrids.size - 1);
         long packed = freeGrids.removeIndex(index);
@@ -178,8 +194,7 @@ public class BoardManager {
         freeGrids.clear();
         for (int row = 0; row < boardData.getRows(); row++) {
             for (int col = 0; col < boardData.getCols(); col++) {
-                TileData tileData = boardData.getTiles()[row][col];
-                if (tileData == null) {
+                if (boardData.getTiles()[row][col] == null) {
                     freeGrids.add(LongPacker.packInts(row, col));
                 }
             }

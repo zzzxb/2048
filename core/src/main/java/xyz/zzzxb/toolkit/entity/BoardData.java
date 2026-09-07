@@ -41,17 +41,19 @@ public class BoardData {
     }
 
     public void init() {
-        if (!dataList.isEmpty()) {
-            for (int i = 0; i < dataList.size; i++) {
-                recycleTile(dataList.get(i));
-            }
-            dataList.clear();
-        }
-
         for (int row = 0; row < rows; row++) {
             for (int col = 0; col < cols; col++) {
-                recycleTile(removeTile(row, col));
+                TileData tile = tiles[row][col];
+                if (tile != null) {
+                    dataList.removeValue(tile, true);
+                    recycleTile(tile);
+                    tiles[row][col] = null;
+                }
             }
+        }
+
+        while (dataList.size > 0) {
+            recycleTile(dataList.removeIndex(0));
         }
     }
 
@@ -64,10 +66,10 @@ public class BoardData {
         dataList.add(tile);
     }
 
-    public void placeTile(TileData tile, int row, int col, boolean updatePosition) {
+    public void placeTile(TileData tile, int row, int col, boolean updatePos) {
         if (tile == null) return;
         tiles[row][col] = tile;
-        if(updatePosition) {
+        if (updatePos) {
             tile.setPosition(getWorldX(col), getWorldY(row));
         }
         if (!dataList.contains(tile, true)) {
